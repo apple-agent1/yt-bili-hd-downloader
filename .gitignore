@@ -1,0 +1,21 @@
+.DS_Store
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Downloaded media and private auth material should never be committed.
+downloads/
+youtube_downloads/
+bilibili_downloads/
+*.mp4
+*.m4a
+*.webm
+*.part
+*.ytdl
+cookies*.txt
+*.cookies.txt
+.env
+.env.*
