@@ -1,0 +1,4 @@
+interface:
+  display_name: "高清视频下载"
+  short_description: "下载四大平台高清视频，导出字幕并自动打开文件夹"
+  default_prompt: "Use $hd-video-download to download this video in HD and export available subtitles."

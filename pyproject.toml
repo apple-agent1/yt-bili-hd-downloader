@@ -4,15 +4,15 @@ build-backend = "hatchling.build"
 
 [project]
 name = "yt-bili-hd-downloader"
-version = "0.1.0"
-description = "A small CLI for downloading HD YouTube and Bilibili videos with yt-dlp."
+version = "0.2.0"
+description = "Download HD videos and subtitles from YouTube, Bilibili, Douyin, and Xiaohongshu."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 authors = [
   { name = "yt-bili-hd-downloader contributors" }
 ]
-keywords = ["youtube", "bilibili", "video", "downloader", "yt-dlp"]
+keywords = ["youtube", "bilibili", "douyin", "xiaohongshu", "video", "downloader", "yt-dlp"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Environment :: Console",
@@ -29,6 +29,7 @@ dependencies = [
 ]
 
 [project.scripts]
+hd-video-download = "yt_bili_hd_downloader.cli:main"
 yt-bili-hd = "yt_bili_hd_downloader.cli:main"
 
 [tool.hatch.build.targets.wheel]

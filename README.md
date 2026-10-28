@@ -1,7 +1,7 @@
-# yt-bili-hd-downloader
+# 高清视频下载 / HD Video Download
 
-A small Python CLI for downloading HD single videos from YouTube and Bilibili
-with `yt-dlp`, then validating the merged media with `ffprobe`.
+A small Python CLI and Codex Skill for downloading single HD videos from
+YouTube, Bilibili, Douyin, and Xiaohongshu with `yt-dlp`.
 
 Use it only for videos you own, videos you are allowed to download, or videos
 whose license permits downloading. You are responsible for following each
@@ -9,19 +9,28 @@ platform's terms and local law.
 
 ## Features
 
-- YouTube and Bilibili single-video downloads.
-- Height-based HD format selection, including vertical Bilibili 1080p.
-- Optional browser cookies through `yt-dlp` flags.
-- YouTube PO Token provider support through `bgutil-ytdlp-pot-provider`.
-- MP4 merge output and post-download `ffprobe` verification.
-- No cookies, tokens, or downloaded media are stored in the repository.
+- YouTube, Bilibili, Douyin, and Xiaohongshu URL detection.
+- Douyin search/profile URLs with `modal_id` are converted to direct video URLs.
+- Height-based format selection, including vertical Bilibili 1080p.
+- Optional Chrome or Netscape cookie authentication.
+- Available platform subtitles exported as SRT and plain TXT.
+- Verified media output with `ffprobe`.
+- One output folder per platform under `~/Downloads/hd-video-downloads/`.
+- Finder opens automatically after a successful download on macOS.
+- No cookies, tokens, subtitles, or downloaded media are stored in Git.
+
+Subtitle export uses subtitle tracks exposed by the platform. It does not
+silently transcribe audio when a video has no subtitle track.
+
+When used as a Codex Skill, an optional Feishu Minutes transcription fallback
+may be used only if the connector is installed and the user authorizes upload.
 
 ## Requirements
 
 - Python 3.10+
 - `ffmpeg` and `ffprobe`
 - Node.js for YouTube JavaScript challenge solving
-- Docker, optional but recommended for YouTube 720p/1080p DASH formats
+- Docker, optional but recommended for protected YouTube HD formats
 
 On macOS with Homebrew:
 
@@ -37,36 +46,55 @@ python3 -m venv .venv
 pip install -e .
 ```
 
-## Quick Start
+The new command is `hd-video-download`. The old `yt-bili-hd` command remains
+as a compatibility alias.
 
-Check local tools:
-
-```bash
-yt-bili-hd doctor
-```
-
-List formats:
+## Download
 
 ```bash
-yt-bili-hd formats "https://www.youtube.com/watch?v=VIDEO_ID"
-yt-bili-hd formats "https://www.bilibili.com/video/BVxxxx/" --cookies-from-browser chrome
+hd-video-download doctor
+hd-video-download formats "VIDEO_URL" --cookies-from-browser chrome
+hd-video-download download "VIDEO_URL" --height 1080 --cookies-from-browser chrome
 ```
 
-Download 1080p:
+Download video and export available subtitles as SRT and TXT:
 
 ```bash
-yt-bili-hd download "https://www.youtube.com/watch?v=VIDEO_ID" --height 1080 --cookies-from-browser chrome
-yt-bili-hd download "https://www.bilibili.com/video/BVxxxx/" --height 1080 --cookies-from-browser chrome
+hd-video-download download "VIDEO_URL" --height 1080 \
+  --cookies-from-browser chrome --subtitles
 ```
 
-Downloads go to `downloads/` by default.
+Export subtitles without downloading the video:
+
+```bash
+hd-video-download subtitles "VIDEO_URL" --cookies-from-browser chrome
+```
+
+Use `--no-open` when Finder should not open. Use `-o DIR` to change the output
+root; the CLI still creates a `youtube`, `bilibili`, `douyin`,
+`xiaohongshu`, or `generic` subfolder.
+
+## Authentication
+
+Many HD formats require a logged-in account. Read Chrome cookies only with the
+account owner's permission:
+
+```bash
+hd-video-download download "VIDEO_URL" --cookies-from-browser chrome
+```
+
+Alternatively, pass a Netscape-format cookie file:
+
+```bash
+hd-video-download download "VIDEO_URL" --cookies ./cookies.txt
+```
+
+Never commit cookie files. The repository ignores common cookie filenames.
 
 ## YouTube PO Token Provider
 
-Some YouTube HD formats require a GVS PO Token. Start the provider before
-downloading if YouTube only lists storyboards or 360p formats.
-
-If you use a local proxy on port `7897`:
+Some YouTube HD formats require a GVS PO Token. Start the provider if YouTube
+only lists storyboards or low-resolution formats:
 
 ```bash
 PROXY_PORT=7897 scripts/start-youtube-pot-provider.sh
@@ -78,43 +106,19 @@ Without a proxy:
 scripts/start-youtube-pot-provider.sh --no-proxy
 ```
 
-Verify it:
+## Codex Skill
 
-```bash
-curl -fsS http://127.0.0.1:4416/ping
+The reusable Skill is in `.agents/skills/hd-video-download`. Its display name
+is **高清视频下载**. The Skill wrapper creates an isolated environment under
+`~/.cache/hd-video-download/` and invokes this project's CLI.
+
+For a personal installation, link or copy that folder to:
+
+```text
+~/.agents/skills/hd-video-download
 ```
 
-## Format Selection
-
-The default selector prefers exact HD video plus audio:
-
-- YouTube: exact requested height first, then lower heights.
-- Bilibili: exact requested height first, then exact requested width. This
-  handles vertical clips such as `1080x1920` for `--height 1080`.
-
-If you need a specific format ID, bypass the selector:
-
-```bash
-yt-bili-hd download "URL" --format "136+140"
-yt-bili-hd download "URL" --format "30080+30280"
-```
-
-## Cookies
-
-Many HD formats require an authenticated account. Prefer browser cookies only
-when needed:
-
-```bash
-yt-bili-hd download "URL" --cookies-from-browser chrome
-```
-
-You can also pass a manually exported cookies file:
-
-```bash
-yt-bili-hd download "URL" --cookies ./cookies.txt
-```
-
-Do not commit cookie files. `.gitignore` excludes common cookie filenames.
+Refresh the Skills page or restart Codex after installation.
 
 ## Development
 

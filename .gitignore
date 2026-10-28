@@ -10,9 +10,14 @@ __pycache__/
 downloads/
 youtube_downloads/
 bilibili_downloads/
+hd-video-downloads/
 *.mp4
 *.m4a
 *.webm
+*.mkv
+*.mov
+*.srt
+*.vtt
 *.part
 *.ytdl
 cookies*.txt

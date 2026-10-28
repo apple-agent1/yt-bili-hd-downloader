@@ -4,7 +4,17 @@ import argparse
 import json
 from pathlib import Path
 
-from .core import build_ytdlp_command, doctor, download
+from .core import (
+    DEFAULT_SUBTITLE_LANGUAGES,
+    build_ytdlp_command,
+    doctor,
+    download,
+    export_subtitles,
+)
+
+
+DEFAULT_OUTPUT_ROOT = Path.home() / "Downloads" / "hd-video-downloads"
+SITE_CHOICES = ["auto", "youtube", "bilibili", "douyin", "xiaohongshu", "generic"]
 
 
 def add_auth_args(parser: argparse.ArgumentParser) -> None:
@@ -22,8 +32,8 @@ def add_auth_args(parser: argparse.ArgumentParser) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="yt-bili-hd",
-        description="Download HD single videos from YouTube and Bilibili.",
+        prog="hd-video-download",
+        description="Download HD single videos and subtitles from supported platforms.",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -34,12 +44,12 @@ def build_parser() -> argparse.ArgumentParser:
         "-o",
         "--output-dir",
         type=Path,
-        default=Path("downloads"),
-        help="Directory for downloaded media. Default: downloads.",
+        default=DEFAULT_OUTPUT_ROOT,
+        help=f"Output root; a platform folder is added. Default: {DEFAULT_OUTPUT_ROOT}.",
     )
     download_parser.add_argument(
         "--site",
-        choices=["auto", "youtube", "bilibili", "generic"],
+        choices=SITE_CHOICES,
         default="auto",
     )
     download_parser.add_argument(
@@ -49,6 +59,17 @@ def build_parser() -> argparse.ArgumentParser:
     )
     download_parser.add_argument("--node", help="Node.js path for YouTube JS challenges.")
     download_parser.add_argument("--no-verify", action="store_true", help="Skip ffprobe.")
+    download_parser.add_argument(
+        "--subtitles",
+        action="store_true",
+        help="Also export available subtitles as SRT and TXT.",
+    )
+    download_parser.add_argument(
+        "--sub-langs",
+        default=DEFAULT_SUBTITLE_LANGUAGES,
+        help="yt-dlp subtitle language selector.",
+    )
+    download_parser.add_argument("--no-open", action="store_true", help="Do not open Finder.")
     download_parser.add_argument("--print-command", action="store_true")
     add_auth_args(download_parser)
 
@@ -56,11 +77,32 @@ def build_parser() -> argparse.ArgumentParser:
     formats_parser.add_argument("url")
     formats_parser.add_argument(
         "--site",
-        choices=["auto", "youtube", "bilibili", "generic"],
+        choices=SITE_CHOICES,
         default="auto",
     )
     formats_parser.add_argument("--node", help="Node.js path for YouTube JS challenges.")
     add_auth_args(formats_parser)
+
+    subtitles_parser = subparsers.add_parser(
+        "subtitles", help="Export available subtitles as SRT and TXT without video."
+    )
+    subtitles_parser.add_argument("url")
+    subtitles_parser.add_argument(
+        "-o",
+        "--output-dir",
+        type=Path,
+        default=DEFAULT_OUTPUT_ROOT,
+        help=f"Output root; a platform folder is added. Default: {DEFAULT_OUTPUT_ROOT}.",
+    )
+    subtitles_parser.add_argument("--site", choices=SITE_CHOICES, default="auto")
+    subtitles_parser.add_argument("--node", help="Node.js path for YouTube JS challenges.")
+    subtitles_parser.add_argument(
+        "--sub-langs",
+        default=DEFAULT_SUBTITLE_LANGUAGES,
+        help="yt-dlp subtitle language selector.",
+    )
+    subtitles_parser.add_argument("--no-open", action="store_true", help="Do not open Finder.")
+    add_auth_args(subtitles_parser)
 
     doctor_parser = subparsers.add_parser("doctor", help="Check local dependencies.")
     doctor_parser.add_argument("--json", action="store_true")
@@ -114,10 +156,27 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"{key}: {value}")
         return 0
 
+    if args.command == "subtitles":
+        result = export_subtitles(
+            args.url,
+            output_root=args.output_dir,
+            site=args.site,
+            cookies_from_browser=args.cookies_from_browser,
+            cookies=args.cookies,
+            node_path=args.node,
+            subtitle_languages=args.sub_langs,
+            open_folder=not args.no_open,
+        )
+        for path in result.subtitles:
+            print(f"Subtitle: {path}")
+        for path in result.text_subtitles:
+            print(f"Text: {path}")
+        return 0
+
     if args.command == "download":
         result = download(
             args.url,
-            output_dir=args.output_dir,
+            output_root=args.output_dir,
             height=args.height,
             site=args.site,
             explicit_format=args.explicit_format,
@@ -126,10 +185,17 @@ def main(argv: list[str] | None = None) -> int:
             node_path=args.node,
             verify=not args.no_verify,
             print_command=args.print_command,
+            subtitles=args.subtitles,
+            subtitle_languages=args.sub_langs,
+            open_folder=not args.no_open,
         )
         print(f"Downloaded: {result.file}")
         if result.probe:
             print_probe_summary(result.probe)
+        for path in result.subtitles:
+            print(f"Subtitle: {path}")
+        for path in result.text_subtitles:
+            print(f"Text: {path}")
         return 0
 
     parser.error(f"Unknown command: {args.command}")
